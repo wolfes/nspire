@@ -20,7 +20,7 @@
   "Save private channel under name."
   (dosync (swap! private-channels
                  (fn [priv-channels]
-                   (conj priv-channels 
+                   (conj priv-channels
                          [(keyword channel-name)
                           {:channel channel :private true}])))))
 
@@ -65,6 +65,32 @@
   {:status 200 :headers {"content-type" "text/html"}
    :body (str "Heard req. for channel: " channel-name)})
 
+(defn parse-query-string [query-string]
+  "Parse a query string into a map."
+  (->> (clojure.string/split query-string #"&")
+       (map #(fn [kv] (clojure.string/split kv #"=")))
+       (map (fn [[k v]] [(keyword k) v]))
+       (into {})))
+
+(defn route-tabspire-api-post [request]
+  (println "Tabspire API Post: " request)
+  (let [params (:route-params request)
+        channel-name (:channel-name params)
+        cmd (:cmd params)
+        cmd-data (:form-params request)
+        ;query-params (parse-query-string (:query-string request))
+        private-channel (get-private-channel-by-name channel-name)]
+    (when (not (nil? private-channel))
+      (enqueue
+        private-channel
+        (json/write-str
+          {:command cmd
+           :command-data cmd-data
+           ;:query-params query-params
+           :channel-name channel-name})))
+    {:status 200 :headers {"content-type" "text/html"}
+     :body (str "Heard req. for channel: " channel-name)}))
+
 (defn route-tabspire-cmd [req-chan request]
   "Route tabspire api command from websocket or http endpoints.
     req-chan: Channel for queueing responses to requestor.
@@ -81,26 +107,10 @@
     (if is-websocket-request?
       (process-websocket-request req-chan channel-name)
       (enqueue req-chan (process-api-request request channel-name cmd))))
+      ;(enqueue req-chan (route-tabspire-api-post request))))
   (println "req-chan: " req-chan)
   (println "DONE route-tabspire-cmd")
   (println))
-
-(defn route-tabspire-api-post [request]
-  (println "Tabspire API Post: " request)
-  (let [params (:route-params request)
-        channel-name (:channel-name params)
-        cmd (:cmd params)
-        cmd-data (:form-params request)
-        private-channel (get-private-channel-by-name channel-name)]
-    (when (not (nil? private-channel))
-      (enqueue
-        private-channel 
-        (json/write-str
-          {:command cmd
-           :command-data cmd-data
-           :channel-name channel-name})))
-    {:status 200 :headers {"content-type" "text/html"}
-     :body (str "Heard req. for channel: " channel-name)}))
 
 (defroutes app-routes
   "Routes requests to their handler function. Captures dynamic variables."
@@ -113,7 +123,7 @@
   (route/resources "/static")
   ;; Any url without a route handler will be served this response
   (route/not-found "Page not found"))
-  
+
 (defn -main [& args]
   "Main thread for the server which starts an async server with
   all the routes we specified and is websocket ready."
