@@ -30,7 +30,6 @@
   for the private channel-name replace existing channel.
   Invariant: Keep only one channel per channel-name available to http api."
   (println "Overwriting Existing Channel.")
-  ;(println "THIS CHANNEL IS PRIVATE. DO NOT COLLECT $200.")
   (siphon ch ch) ; How this works: Echoes incoming messages to sender.
   ; Replace last private channel for channel-name with new request's channel.
   (set-private-channel-by-name channel-name ch))
@@ -59,8 +58,6 @@
     ; Forward request to websockets listening to named channel.
     (when (not (nil? channel))
       (enqueue channel (str "Command: " cmd ".  Channel:" channel-name))))
-  ;(println "Req. Body is a channel: " (channel? (:body request)))
-  ;(println "Read Body" (.readLine (:body request)))
   ;(receive-all (:body request) (fn [m] (println "HTTP Message: " m)))
   {:status 200 :headers {"content-type" "text/html"}
    :body (str "Heard req. for channel: " channel-name)})
@@ -78,7 +75,6 @@
         channel-name (:channel-name params)
         cmd (:cmd params)
         cmd-data (:form-params request)
-        ;query-params (parse-query-string (:query-string request))
         private-channel (get-private-channel-by-name channel-name)]
     (when (not (nil? private-channel))
       (enqueue
@@ -86,7 +82,6 @@
         (json/write-str
           {:command cmd
            :command-data cmd-data
-           ;:query-params query-params
            :channel-name channel-name})))
     {:status 200 :headers {"content-type" "text/html"}
      :body (str "Heard req. for channel: " channel-name)}))
@@ -107,16 +102,20 @@
     (if is-websocket-request?
       (process-websocket-request req-chan channel-name)
       (enqueue req-chan (process-api-request request channel-name cmd))))
-      ;(enqueue req-chan (route-tabspire-api-post request))))
-  (println "req-chan: " req-chan)
   (println "DONE route-tabspire-cmd")
   (println))
 
+(def alphanum-regex #"[\:\_\-a-zA-Z0-9]+")
+
 (defroutes app-routes
   "Routes requests to their handler function. Captures dynamic variables."
-  (GET ["/tabspire/api/0/:channel-name/:cmd", :channel-name #"[a-zA-Z]+", :cmd #"[a-zA-Z]+"] {}
+  (GET ["/tabspire/api/0/:channel-name/:cmd",
+        :channel-name , alphanum-regex
+        :cmd alphanum-regex] {}
        (wrap-aleph-handler route-tabspire-cmd))
-  (POST ["/tabspire/api/0/:channel-name/:cmd", :channel-name #"[a-zA-Z]+", :cmd #"[a-zA-Z]+"] {}
+  (POST ["/tabspire/api/0/:channel-name/:cmd"
+         :channel-name alphanum-regex
+         :cmd alphanum-regex] {}
         (wrap-params route-tabspire-api-post))
   (GET ["/"] {} "Nyan Cat Tabbyspire!")
   ;; Route our public resources like css and js to the static url
@@ -130,7 +129,7 @@
   (start-http-server (wrap-ring-handler app-routes)
                      {:host "localhost" :port 3000 :websocket true}))
 
-; DEPRECATED FUNCTION GRAVEYARD:
+; Functions supporting multi-client channels.
 (defn channel-init [channel-name chan]
   "Initialize a new chat channel."
   (receive-all chan #(println "Message from " channel-name ": " %)))
