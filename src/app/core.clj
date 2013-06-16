@@ -2,27 +2,12 @@
   (:use lamina.core
         aleph.http
         compojure.core
-        ring.middleware.params)
+        ring.middleware.params
+        channel.private
+        channel.group)
   (:require [compojure.route :as route]
             [clojure.data.json :as json])
   (:gen-class))
-
-; Map private-channel-name to private channel info.
-(def private-channels (atom {}))
-
-(defn private-channel-with-name? [channel-name]
-  (contains? @private-channels (keyword channel-name)))
-
-(defn get-private-channel-by-name [channel-name]
-  (-> ((keyword channel-name) @private-channels) :channel))
-
-(defn set-private-channel-by-name [channel-name channel]
-  "Save private channel under name."
-  (dosync (swap! private-channels
-                 (fn [priv-channels]
-                   (conj priv-channels
-                         [(keyword channel-name)
-                          {:channel channel :private true}])))))
 
 (defn process-existing-private-channel [ch channel-name]
   "Ideally: Disregard requestor's channel ch.  Lookup private channel.
@@ -38,8 +23,8 @@
   "Store a new private channel by name."
   (println "(process-new-private-channel)")
   ;(let [private-channel (named-channel channel-name (partial channel-init channel-name))]
-    ;(siphon private-channel ch)
-    ;(siphon ch private-channel)
+  ;(siphon private-channel ch)
+  ;(siphon ch private-channel)
   ; (siphon ch ch) ; How this works: Echoes incoming messages to sender - for testing...
   ; TODO(wstyke): Add handling of existing websocket's channel messages/commands!!.
   ; ...
@@ -47,20 +32,23 @@
 
 (defn process-websocket-request [ch channel-name]
   "Relays messages into a named channel.
-   Creates named channel if one does not already exist."
+  Creates named channel if one does not already exist."
   (if (private-channel-with-name? channel-name)
     (process-existing-private-channel ch channel-name)
     (process-new-private-channel ch channel-name)))
 
 (defn process-api-request [request channel-name cmd]
-  "Process http api requests to /chat/:room/:cmd."
-  (let [channel (get-private-channel-by-name channel-name)]
-    ; Forward request to websockets listening to named channel.
-    (when (not (nil? channel))
-      (enqueue channel (str "Command: " cmd ".  Channel:" channel-name))))
-  ;(receive-all (:body request) (fn [m] (println "HTTP Message: " m)))
-  {:status 200 :headers {"content-type" "text/html"}
-   :body (str "Heard req. for channel: " channel-name)})
+  "Process http GET api requests to /chat/:room/:cmd.
+  For now, don't actually do anything, since POST requests are preferred."
+  (let [channel (get-private-channel-by-name channel-name)
+        tabspire-command (json/write-str
+                           {:command cmd
+                            :command-data {}
+                            :channel-name channel-name})]
+    (when (channel? channel)
+      (enqueue channel tabspire-command))
+    {:status 200 :headers {"content-type" "text/html"}
+     :body tabspire-command}))
 
 (defn parse-query-string [query-string]
   "Parse a query string into a map."
@@ -75,20 +63,19 @@
         channel-name (:channel-name params)
         cmd (:cmd params)
         cmd-data (:form-params request)
-        private-channel (get-private-channel-by-name channel-name)]
-    (when (not (nil? private-channel))
-      (enqueue
-        private-channel
-        (json/write-str
-          {:command cmd
-           :command-data cmd-data
-           :channel-name channel-name})))
+        private-channel (get-private-channel-by-name channel-name)
+        tabspire-command (json/write-str
+                           {:command cmd
+                            :command-data cmd-data
+                            :channel-name channel-name})]
+    (when (channel? private-channel)
+      (enqueue private-channel tabspire-command))
     {:status 200 :headers {"content-type" "text/html"}
-     :body (str "Heard req. for channel: " channel-name)}))
+     :body tabspire-command}))
 
 (defn route-tabspire-cmd [req-chan request]
   "Route tabspire api command from websocket or http endpoints.
-    req-chan: Channel for queueing responses to requestor.
+  req-chan: Channel for queueing responses to requestor.
   "
   (let [params (:route-params request)
         channel-name (:channel-name params)

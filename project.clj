@@ -8,7 +8,7 @@
                  [compojure "1.1.1"]
                  [ring "1.1.0-beta2"]
                  [org.clojure/data.json "0.2.2"]]
-  :source-paths ["src" "src/app/core"]
+  :source-paths ["src" "src/app/core" "src/channel/"]
   :aot [app.core]
   :ring {:handler app.core/-main}
   :main app.core)
