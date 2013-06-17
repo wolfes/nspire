@@ -3,7 +3,7 @@
   (:gen-class))
 
 ; Group channel bookkeeping methods.
-; Allows multiple clients per unique channel name.
+; Allows multiple clients to listen to a unique channel name.
 
 (def group-channels (atom {}))
 
@@ -26,7 +26,8 @@
 
 (defn join-group-channel-by-name [channel-name channel]
   "Adds channel as listener to the group channel with channel-name."
-  (if-not (group-channel-with-name? channel-name)
+  (when-not (group-channel-with-name? channel-name)
    (create-group-channel channel-name)) 
-  (if-let [group-channel (get-group-channel-by-name channel-name)]
+  (when-let [group-channel (get-group-channel-by-name channel-name)]
+    (siphon channel group-channel)
     (siphon group-channel channel)))

@@ -1,6 +1,10 @@
 # nspire
 
-A Clojure server for forwarding Vimspire/Bash API Requests to websocket-connected Tabspire clients.
+A Clojure server!
+
+Connects Vimspire/Bash/Curl/... requests to private or group channels associated with Vimspire clients.
+- Vimspire: Vim plugin for interacting with the Chrome Browser from Vim!
+- Tabspire: Chrome extension for gaining remote control powers, and other nifty utilities.
 
 ## Usage
 
