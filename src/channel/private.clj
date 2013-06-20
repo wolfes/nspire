@@ -13,7 +13,7 @@
   (contains? @private-channels (keyword channel-name)))
 
 (defn get-private-channel-by-name [channel-name]
-  "Returns private channel associated with channel-name if one exists, else nil."
+  "Returns private channel for channel-name if one exists, else nil."
   (-> ((keyword channel-name) @private-channels) :channel))
 
 (defn set-private-channel-by-name [channel-name channel]

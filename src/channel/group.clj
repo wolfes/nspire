@@ -12,7 +12,7 @@
   (contains? @group-channels (keyword channel-name)))
 
 (defn get-group-channel-by-name [channel-name]
-  "Returns group channel associated with channel-name if one exists, else nil."
+  "Returns group channel for channel-name if one exists, else nil."
   (-> ((keyword channel-name) @group-channels) :channel))
 
 (defn- create-group-channel [channel-name]
