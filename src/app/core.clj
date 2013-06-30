@@ -25,13 +25,14 @@
 
 (defmethod process-websocket-request :join-private [request ch channel-name cmd]
   "Add requestor's channel in private channel namespace."
+  (println "process-websocket-request > join-private channel-name: " channel-name)
   (if (private-channel-with-name? channel-name)
     (process-existing-private-channel ch channel-name)
     (process-new-private-channel ch channel-name)))
 
 (defmethod process-websocket-request :join-group [request ch channel-name cmd]
   "Add requestor's channel to listen to named channel group."
-  (println "process-websocket-request > join-group. channel-name: " channel-name)
+  (println "process-websocket-request > join-group channel-name: " channel-name)
   (join-group-channel-by-name channel-name ch))
 
 (defn process-api-request [request channel-name cmd]
@@ -50,13 +51,13 @@
 (defn process-api-request-to-channel [request target-channel]
   "Process an API request for a target channel."
   (let [params (:route-params request)
-        channel-name (:channel-name params)
-        cmd (:cmd params)
+        {:keys [channel-name cmd]} params
         cmd-data (:form-params request)
         tabspire-command (json/write-str
                            {:command cmd
                             :command-data cmd-data
                             :channel-name channel-name})]
+    (println "API Request (cmd: " cmd ", form-params: " (:form-params request) ").")
     (when (channel? target-channel)
       (enqueue target-channel tabspire-command))
     {:status 200 :headers {"content-type" "text/html"}
@@ -66,20 +67,20 @@
   "Route POST request to Tabspire API to the appropriate handler.."
   (fn [request]
     "Returns request param's channel-type if available, else :private."
-    (keyword (get (-> request :params) "channel-type" :private))))
+    (keyword (get (:params request) "channel-type" :private))))
 
 (defmethod route-tabspire-api-post :private [request]
   "Process tabspire api request for a private channel."
-  (println "route-tabspire-api-post to PRIVATE: " request)
   (let [channel-name (-> request :route-params :channel-name)
         target-channel (get-private-channel-by-name channel-name)]
+    (println "\nTabspire API Post Cmd >> private channel: " channel-name)
     (process-api-request-to-channel request target-channel)))
 
 (defmethod route-tabspire-api-post :group [request]
   "Process tabspire api request for a group channel."
-  (println "route-tabspire-api-post to GROUP: " request)
   (let [channel-name (-> request :route-params :channel-name)
         target-channel (get-group-channel-by-name channel-name)]
+    (println "\nTabspire API Post Cmd >> group channel: " channel-name)
     (process-api-request-to-channel request target-channel)))
 
 (defn route-tabspire-cmd [req-chan request]
@@ -87,14 +88,12 @@
   req-chan: Channel for queueing responses to requestor.
   "
   (let [params (:route-params request)
-        channel-name (:channel-name params)
-        cmd (:cmd params)
+        {:keys [channel-name cmd]} params
         is-websocket-request? (:websocket request)]
-    (println "CHAT > Type:"
+    (println "\nTabspire API >> Type:"
              (if is-websocket-request? "Websocket" "HTTP API")
              "-- Channel:" channel-name
              "-- Cmd:" cmd)
-    (println "CHAT > Req:" request)
     (if is-websocket-request?
       (process-websocket-request request req-chan channel-name cmd)
       (enqueue req-chan (process-api-request request channel-name cmd)))))
