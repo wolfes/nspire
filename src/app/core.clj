@@ -64,7 +64,7 @@
      :body tabspire-command}))
 
 (defmulti route-tabspire-api-post
-  "Route POST request to Tabspire API to the appropriate handler.."
+  "Route POST request to Tabspire API to the appropriate handler."
   (fn [request]
     "Returns request param's channel-type if available, else :private."
     (keyword (get (:params request) "channel-type" :private))))
@@ -85,8 +85,7 @@
 
 (defn route-tabspire-cmd [req-chan request]
   "Route tabspire api command from websocket or http endpoints.
-  req-chan: Channel for queueing responses to requestor.
-  "
+  req-chan: Channel for queueing responses to requestor."
   (let [params (:route-params request)
         {:keys [channel-name cmd]} params
         is-websocket-request? (:websocket request)]
