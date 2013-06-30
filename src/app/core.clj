@@ -92,7 +92,8 @@
     (println "\nTabspire API >> Type:"
              (if is-websocket-request? "Websocket" "HTTP API")
              "-- Channel:" channel-name
-             "-- Cmd:" cmd)
+             "-- Cmd:" cmd
+             "-- Remote Addr:" (:remote-addr request))
     (if is-websocket-request?
       (process-websocket-request request req-chan channel-name cmd)
       (enqueue req-chan (process-api-request request channel-name cmd)))))
