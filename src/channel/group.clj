@@ -15,19 +15,19 @@
   "Returns group channel for channel-name if one exists, else nil."
   (-> ((keyword channel-name) @group-channels) :channel))
 
-(defn- create-group-channel [channel-name]
-  "Upserts new group channel with specified name."
+(defn- ensure-group-channel-exists [channel-name]
+  "Creates new group channel if none exist for channel-name."
   (dosync
-    (swap! group-channels
-           (fn [grp-channels]
-             (conj grp-channels
-                   [(keyword channel-name)
-                    {:channel (channel)}])))))
+    (when-not (group-channel-with-name? channel-name)
+      (swap! group-channels
+             (fn [grp-channels]
+               (conj grp-channels
+                     [(keyword channel-name)
+                      {:channel (channel)}]))))))
 
 (defn join-group-channel-by-name [channel-name channel]
   "Adds channel as listener to the group channel with channel-name."
-  (when-not (group-channel-with-name? channel-name)
-   (create-group-channel channel-name)) 
+  (ensure-group-channel-exists channel-name)
   (when-let [group-channel (get-group-channel-by-name channel-name)]
     (siphon channel group-channel)
     (siphon group-channel channel)))
