@@ -109,7 +109,7 @@
          :channel-name alphanum-regex
          :cmd alphanum-regex] {}
         (wrap-params route-tabspire-api-post))
-  (GET ["/"] {} "Nyan Cat Tabbyspire!")
+  (GET ["/"] {} "<a href='http://www.nyan.cat/dub.php'>Nyan Cat Tabbyspire!</a>")
   ; Route public resources (css/js) to /static url.
   (route/resources "/static")
   ; Handler for requests with no route handler.
