@@ -13,7 +13,7 @@
 
 (defn get-group-channel-by-name [channel-name]
   "Returns group channel for channel-name if one exists, else nil."
-  (-> ((keyword channel-name) @group-channels) :channel))
+  (-> @group-channels ((keyword channel-name)) :channel))
 
 (defn- ensure-group-channel-exists [channel-name]
   "Creates new group channel if none exist for channel-name."

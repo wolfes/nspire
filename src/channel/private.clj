@@ -14,7 +14,8 @@
 
 (defn get-private-channel-by-name [channel-name]
   "Returns private channel for channel-name if one exists, else nil."
-  (-> ((keyword channel-name) @private-channels) :channel))
+  ;(-> ((keyword channel-name) @private-channels) :channel))
+  (-> @private-channels ((keyword channel-name)) :channel))
 
 (defn set-private-channel-by-name [channel-name channel]
   "Upserts private channel with channel-name."
