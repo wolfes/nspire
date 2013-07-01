@@ -9,6 +9,11 @@
             [clojure.data.json :as json])
   (:gen-class))
 
+; nspire. A command Forwarding Server.
+; From API Post requests to channel-names for...
+;   a single private Tabspire client.
+;   a group of Tabspire clients.
+
 (defn process-existing-private-channel [ch channel-name]
   "Overwrite existing private channel for channel-name, grand theft channel style."
   (siphon ch ch) ; Echo incoming messages to sender, for client testing.
