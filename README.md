@@ -2,7 +2,7 @@
 
 A Clojure server!
 
-Connects Vimspire/Bash/Curl/... requests to private or group channels associated with Vimspire clients.
+Connects Vimspire/Bash/Curl/... requests to private or group channels associated with Tabspire clients.
 - Vimspire: Vim plugin for interacting with the Chrome Browser from Vim!
 - Tabspire: Chrome extension for gaining remote control powers, and other nifty utilities.
 
